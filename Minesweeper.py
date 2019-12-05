@@ -59,12 +59,17 @@ class Tile():
         self.Obj.bind('<1>',self._handleClick)
 
     def _handleClick(self,event):
+        if tileController.InitalClick == False:
+            tileController.firstClick(self)
+            tileController.InitalClick = True
+
         self.covered = False
         if self.text == '':
             tileController.openArea(self)
 
     def reset(self):
         self.text = ''
+        self.hasBomb = False
         self.textColor = '#000'
         self.covered = True
         self.status[True] = random.choice(SAND)
@@ -76,6 +81,7 @@ class TileController():
         self.totalBombs = 0
         self.unsearched = 0
         self.gameOver = False
+        self.InitalClick = False
         self.neightbourFormat = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
         self.textSize = '-2.8*x + 70'
 
@@ -86,26 +92,21 @@ class TileController():
         root.bind('n',self._handleNew)
 
     def _handleNew(self,event):
+        total.config(text='...')
         self.gameOver = False
         self.populate(False)
 
-
-    def populate(self,inital=True):
-        bombs = [True if random.random() < self.percentBombs else False for i in range(CPL**2)]
+    def firstClick(self,tile):
+        safe = self.allNeighbors(tile)
+        safe.append(tile)
+        safe = [t.pos[1]*CPL+t.pos[0] for t in safe]
+        bombs = [True if (random.random() < self.percentBombs and i not in safe) else False for i in range(CPL**2)]
         self.totalBombs = bombs.count(True)
         total.config(text='Bombs: %s'%self.totalBombs)
-        if inital == True:
-            for y in range(CPL):
-                row = []
-                for x in range(CPL):
-                    row.append(Tile(self.board,[x,y],bombs[y*CPL+x]))
-                self.tiles.append(row)
 
-        else:
-            for y, column in enumerate(self.tiles):
-                for x, tile in enumerate(column):
-                    tile.hasBomb = bombs[y*CPL+x]
-                    tile.reset()
+        for y, column in enumerate(self.tiles):
+            for x, tile in enumerate(column):
+                tile.hasBomb = bombs[y*CPL+x]
 
         for column in self.tiles:
             for tile in column:
@@ -116,6 +117,22 @@ class TileController():
                 elif ln != 0:
                     tile.text = ln
                     tile.textColor = COLORS[str(ln)]
+
+
+    def populate(self,inital=True):
+        if inital == True:
+            for y in range(CPL):
+                row = []
+                for x in range(CPL):
+                    row.append(Tile(self.board,[x,y]))
+                self.tiles.append(row)
+        else:
+            for y, column in enumerate(self.tiles):
+                for x, tile in enumerate(column):
+                    self.InitalClick = False
+                    tile.reset()
+
+
 
     def update(self):
         totalCovered = 0;
@@ -187,9 +204,11 @@ tileController.populate()
 
 while 1:
     if tileController.totalBombs == tileController.unsearched and tileController.gameOver == False:
-        print('you win')
+        # print('you win')
+        pass
     elif tileController.gameOver == True:
-        print('Game Over')
+        # print('Game Over')
+        pass
     tileController.update()
     root.update()
     root.update_idletasks()
