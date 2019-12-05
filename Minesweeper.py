@@ -2,7 +2,8 @@ from tkinter import *
 import math, random, time
 InfoH = 50
 W, H = 600,600
-CPL = 10
+CPL = 15
+
 
 COLORS = {'1' : '#2c5e8f',
           '2' : '#008900',
@@ -33,6 +34,7 @@ class Tile():
         self.hasBomb = hasBomb
         self.pos = pos
         self.covered = True
+        self.flagged = False
         self.status = {True : random.choice(SAND), False : '#cdcdcd'}
         self.flip = {False : True, True : False}
         self.text = ''
@@ -42,10 +44,17 @@ class Tile():
         self.Obj.grid(row=self.pos[0],column=self.pos[1],padx=1,pady=1)
         self.Obj.pack_propagate(0)
 
-        self.Display = Label(self.Obj,text=self.text,font='Roboto 18 bold',bg=self.Obj['bg'],justify='center')
+        self.Display = Label(
+            self.Obj,
+            width=self.Obj['width'],
+            height=self.Obj['height'],
+            text=self.text,
+            font='Roboto %i bold'%(eval(tileController.textSize.replace('x',str(CPL)))),
+            bg=self.Obj['bg'],
+            anchor='center'
+        )
         if self.covered == False:
-            self.Display.place(relx=0.5,rely=0.5,anchor=CENTER)
-            #self.Display.pack(fill=BOTH)
+            self.Display.pack(fill=BOTH)
 
         self.Obj.bind('<1>',self._handleClick)
 
@@ -53,6 +62,12 @@ class Tile():
         self.covered = False
         if self.text == '':
             tileController.openArea(self)
+
+    def reset(self):
+        self.text = ''
+        self.textColor = '#000'
+        self.covered = True
+        self.status[True] = random.choice(SAND)
 
 class TileController():
     def __init__(self,percentBombs):
@@ -62,28 +77,42 @@ class TileController():
         self.unsearched = 0
         self.gameOver = False
         self.neightbourFormat = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
+        self.textSize = '-2.8*x + 70'
 
         self.board = Frame(root,width=W,height=H,bg='#000')
         self.board.grid(rowspan=CPL,columnspan=CPL,sticky='s')
         self.board.pack_propagate(0)
 
+        root.bind('n',self._handleNew)
+
+    def _handleNew(self,event):
+        self.gameOver = False
+        self.populate(False)
 
 
-    def populate(self):
+    def populate(self,inital=True):
         bombs = [True if random.random() < self.percentBombs else False for i in range(CPL**2)]
-        self.totalBombs = len([tile for tile in bombs if tile == True])
+        self.totalBombs = bombs.count(True)
         total.config(text='Bombs: %s'%self.totalBombs)
-        for y in range(CPL):
-            row = []
-            for x in range(CPL):
-                row.append(Tile(self.board,[x,y],bombs[y*CPL+x]))
-            self.tiles.append(row)
+        if inital == True:
+            for y in range(CPL):
+                row = []
+                for x in range(CPL):
+                    row.append(Tile(self.board,[x,y],bombs[y*CPL+x]))
+                self.tiles.append(row)
+
+        else:
+            for y, column in enumerate(self.tiles):
+                for x, tile in enumerate(column):
+                    tile.hasBomb = bombs[y*CPL+x]
+                    tile.reset()
 
         for column in self.tiles:
             for tile in column:
-                n = self.findNeighborBombs(tile)
+                n = [t for t in self.allNeighbors(tile) if t.hasBomb == True]
                 ln = len(n)
-                if ln == 1 and type(n) == str: tile.text = n
+                if tile.hasBomb == True:
+                    tile.text = '*'
                 elif ln != 0:
                     tile.text = ln
                     tile.textColor = COLORS[str(ln)]
@@ -99,11 +128,12 @@ class TileController():
                     tile.Display.config(fg=tile.textColor,text=tile.text,bg=tile.Obj['bg'])
                     tile.Display.pack()
                 else:
+                    tile.Display.pack_forget()
+                    tile.Obj.config(bg=tile.status[tile.covered])
                     totalCovered += 1
 
         unsearched.config(text='Unsearched Tiles: %s'%totalCovered)
         self.unsearched = totalCovered
-
 
 
     def openArea(self,tile):
@@ -133,19 +163,6 @@ class TileController():
                 neighbors.append(self.tiles[column][row])
         return neighbors
 
-    def findNeighborBombs(self,tile):
-        neighbors = []
-        if tile.hasBomb == True:
-            return '*'
-        else:
-            for check in self.neightbourFormat:
-                row = tile.pos[0]+check[0]
-                column = tile.pos[1]+check[1]
-                if (row >= 0 and column >= 0) and (row <= CPL-1 and column <= CPL-1):
-                    if self.tiles[column][row].hasBomb == True:
-                        neighbors.append(self.tiles[column][row])
-
-        return neighbors
 
 root = Tk()
 root.title('Minesweeper')
@@ -163,7 +180,7 @@ unsearched.pack(side=RIGHT,padx=25)
 
 
 
-tileController = TileController(0.15)
+tileController = TileController(0.1)
 tileController.populate()
 
 
