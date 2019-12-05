@@ -2,7 +2,7 @@ from tkinter import *
 import math, random, time
 InfoH = 50
 W, H = 600,600
-CPL = 15
+CPL = 10
 
 COLORS = {'1' : '#2c5e8f',
           '2' : '#008900',
@@ -42,10 +42,10 @@ class Tile():
         self.Obj.grid(row=self.pos[0],column=self.pos[1],padx=1,pady=1)
         self.Obj.pack_propagate(0)
 
-        self.Display = Label(self.Obj,text=self.text,font='Roboto 18 bold',bg=self.Obj['bg'],anchor='center')
-        # self.text.grid(sticky="wens")
+        self.Display = Label(self.Obj,text=self.text,font='Roboto 18 bold',bg=self.Obj['bg'],justify='center')
         if self.covered == False:
-            self.Display.pack(fill=Y)
+            self.Display.place(relx=0.5,rely=0.5,anchor=CENTER)
+            #self.Display.pack(fill=BOTH)
 
         self.Obj.bind('<1>',self._handleClick)
 
@@ -88,20 +88,6 @@ class TileController():
                     tile.text = ln
                     tile.textColor = COLORS[str(ln)]
 
-    def findNeighborBombs(self,tile):
-        neighbors = []
-        if tile.hasBomb == True:
-            return '*'
-        else:
-            for check in self.neightbourFormat:
-                row = tile.pos[0]+check[0]
-                column = tile.pos[1]+check[1]
-                if (row >= 0 and column >= 0) and (row <= CPL-1 and column <= CPL-1):
-                    if self.tiles[column][row].hasBomb == True:
-                        neighbors.append(self.tiles[column][row])
-
-        return neighbors
-
     def update(self):
         totalCovered = 0;
         for column in self.tiles:
@@ -121,13 +107,12 @@ class TileController():
 
 
     def openArea(self,tile):
-        # print('a')
         neighbors = [tile]
         new = None
         for i in range(10):
             new = []
             for tile in neighbors:
-                new = addListToList(new,self.findNeighborEmpty(tile))
+                new = addListToList(new,[t for t in self.allNeighbors(tile) if t.text == ''])
             neighbors = cutList(new)
 
         last = []
@@ -138,15 +123,6 @@ class TileController():
         for tile in neighbors:
             tile.covered = False
 
-    def findNeighborEmpty(self,tile):
-        neighbors = []
-        for check in self.neightbourFormat:
-            row = tile.pos[0]+check[0]
-            column = tile.pos[1]+check[1]
-            if (row >= 0 and column >= 0) and (row <= CPL-1 and column <= CPL-1):
-                if self.tiles[column][row].text == '':
-                    neighbors.append(self.tiles[column][row])
-        return neighbors
 
     def allNeighbors(self,tile):
         neighbors = []
@@ -155,7 +131,20 @@ class TileController():
             column = tile.pos[1]+check[1]
             if (row >= 0 and column >= 0) and (row <= CPL-1 and column <= CPL-1):
                 neighbors.append(self.tiles[column][row])
-        print(len(neighbors))
+        return neighbors
+
+    def findNeighborBombs(self,tile):
+        neighbors = []
+        if tile.hasBomb == True:
+            return '*'
+        else:
+            for check in self.neightbourFormat:
+                row = tile.pos[0]+check[0]
+                column = tile.pos[1]+check[1]
+                if (row >= 0 and column >= 0) and (row <= CPL-1 and column <= CPL-1):
+                    if self.tiles[column][row].hasBomb == True:
+                        neighbors.append(self.tiles[column][row])
+
         return neighbors
 
 root = Tk()
