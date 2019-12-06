@@ -16,7 +16,10 @@ COLORS = {'1' : '#2c5e8f',
           '*' : '#000'
 
 }
-SAND = ['#c2b280','#b5a265','#c8ba8d','#cfc29b']
+SAND = [['#c2b280','#b5a265','#c8ba8d','#cfc29b'],'#cdcdcd']
+GRASS = [['#006200','#006200','#008900','#009d00','#00b100'],'#573116']
+
+MODES = {"Easy" : 0.1, "Medium" : 0.2, "Hard" : 0.3, "Insane" : 0.5}
 
 def cutList(l):
     newL = []
@@ -35,7 +38,7 @@ class Tile():
         self.pos = pos
         self.covered = True
         self.flagged = False
-        self.status = {True : random.choice(SAND), False : '#cdcdcd', 'flagged' : '#f00'}
+        self.status = {True : random.choice(tileController.texture[0]), False : tileController.texture[1], 'flagged' : '#f00'}
         self.flip = {False : True, True : False}
         self.text = ''
         self.textColor = '#000'
@@ -73,7 +76,8 @@ class Tile():
         self.hasBomb = False
         self.textColor = '#000'
         self.covered = True
-        self.status[True] = random.choice(SAND)
+        self.status[True] = random.choice(tileController.texture[0])
+        self.status[False] = tileController.texture[1]
 
 class TileController():
     def __init__(self,percentBombs):
@@ -85,6 +89,7 @@ class TileController():
         self.InitalClick = False
         self.neightbourFormat = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
         self.textSize = '-2.8*x + 70'
+        self.texture = random.choice([GRASS,SAND])
 
         self.board = Frame(root,width=W,height=H,bg='#000')
         self.board.grid(rowspan=CPL,columnspan=CPL,sticky='s')
@@ -95,12 +100,13 @@ class TileController():
 
     def _handleNew(self,event):
         total.config(text='...')
+        self.texture = random.choice([GRASS,SAND])
         self.gameOver = False
         self.populate(False)
 
     def _handleFlag(self,e):
         mousePos = root.winfo_pointerx()+e.x,root.winfo_pointery()+e.y-InfoH
-        if (mousePos[0] >= 0 and mousePos[0] <= W) and (mousePos[1] >= 0 and mousePos[1] <= H):
+        if (mousePos[0] >= 0 and mousePos[0] <= W) and (mousePos[1] >= 0 and mousePos[1] <= H) and tileController.gameOver == False:
             pos = math.floor(mousePos[0] / math.floor(W/CPL)), math.floor(mousePos[1] / math.floor(H/CPL))
             tile = self.tiles[pos[0]][pos[1]]
             if tile.covered == True:
@@ -114,7 +120,7 @@ class TileController():
         safe = [t.pos[1]*CPL+t.pos[0] for t in safe]
         bombs = [True if (random.random() < self.percentBombs and i not in safe) else False for i in range(CPL**2)]
         self.totalBombs = bombs.count(True)
-        total.config(text='Bombs: %s'%self.totalBombs)
+
 
         for y, column in enumerate(self.tiles):
             for x, tile in enumerate(column):
@@ -130,7 +136,6 @@ class TileController():
                     tile.text = ln
                     tile.textColor = COLORS[str(ln)]
 
-
     def populate(self,inital=True):
         if inital == True:
             for y in range(CPL):
@@ -144,44 +149,49 @@ class TileController():
                     self.InitalClick = False
                     tile.reset()
 
-
-
     def update(self):
         totalCovered = 0;
+        tilesFlagged = 0;
         for column in self.tiles:
             for tile in column:
-                if tile.covered == False:
-                    if tile.text == '*':
-                        self.gameOver = True
+                if tile.covered != True:
+                    if tile.covered == False:
+                        if tile.text == '*':
+                            self.gameOver = True
+                        tile.Display.config(fg=tile.textColor,text=tile.text,bg=tile.Obj['bg'])
+                        tile.Display.pack()
+                    elif tile.covered == 'flagged':
+                        tilesFlagged += 1
+                        totalCovered += 1
+
                     tile.Obj.config(bg=tile.status[tile.covered])
-                    tile.Display.config(fg=tile.textColor,text=tile.text,bg=tile.Obj['bg'])
-                    tile.Display.pack()
+
                 else:
                     tile.Display.pack_forget()
                     tile.Obj.config(bg=tile.status[tile.covered])
                     totalCovered += 1
 
         unsearched.config(text='Unsearched Tiles: %s'%totalCovered)
+        if self.InitalClick == True:
+            total.config(text='Bombs: %s'%str(self.totalBombs-tilesFlagged))
         self.unsearched = totalCovered
 
 
     def openArea(self,tile):
         neighbors = [tile]
-        new = None
-        for i in range(10):
+        new = []
+        old = None
+        while old != new:
+            old = new
             new = []
-            for tile in neighbors:
-                new = addListToList(new,[t for t in self.allNeighbors(tile) if t.text == ''])
-            neighbors = cutList(new)
+            for tile in [t for t in neighbors if t.text == '']:
+                new = addListToList(new,self.allNeighbors(tile))
+                new.append(tile)
+            new = cutList(new)
+            neighbors = cutList(addListToList(neighbors,new))
 
-        last = []
-        for tile in neighbors:
-            last = addListToList(last,self.allNeighbors(tile))
-
-        neighbors = cutList(addListToList(neighbors,last))
         for tile in neighbors:
             tile.covered = False
-
 
     def allNeighbors(self,tile):
         neighbors = []
@@ -206,6 +216,7 @@ total = Label(Info,text='',font='Roboto 18 bold',bg=Info['bg'])
 total.pack(side=LEFT,padx=25)
 unsearched = Label(Info,text='',font='Roboto 18 bold',bg=Info['bg'])
 unsearched.pack(side=RIGHT,padx=25)
+tkvar = StringVar(root)
 
 
 tileController = TileController(0.18)
