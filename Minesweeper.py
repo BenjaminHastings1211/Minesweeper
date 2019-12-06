@@ -35,7 +35,7 @@ class Tile():
         self.pos = pos
         self.covered = True
         self.flagged = False
-        self.status = {True : random.choice(SAND), False : '#cdcdcd'}
+        self.status = {True : random.choice(SAND), False : '#cdcdcd', 'flagged' : '#f00'}
         self.flip = {False : True, True : False}
         self.text = ''
         self.textColor = '#000'
@@ -63,9 +63,10 @@ class Tile():
             tileController.firstClick(self)
             tileController.InitalClick = True
 
-        self.covered = False
-        if self.text == '':
-            tileController.openArea(self)
+        if tileController.gameOver == False and self.covered != 'flagged':
+            self.covered = False
+            if self.text == '':
+                tileController.openArea(self)
 
     def reset(self):
         self.text = ''
@@ -78,7 +79,7 @@ class TileController():
     def __init__(self,percentBombs):
         self.tiles = []
         self.percentBombs = percentBombs
-        self.totalBombs = 0
+        self.totalBombs = None
         self.unsearched = 0
         self.gameOver = False
         self.InitalClick = False
@@ -90,11 +91,22 @@ class TileController():
         self.board.pack_propagate(0)
 
         root.bind('n',self._handleNew)
+        root.bind('f',self._handleFlag)
 
     def _handleNew(self,event):
         total.config(text='...')
         self.gameOver = False
         self.populate(False)
+
+    def _handleFlag(self,e):
+        mousePos = root.winfo_pointerx()+e.x,root.winfo_pointery()+e.y-InfoH
+        if (mousePos[0] >= 0 and mousePos[0] <= W) and (mousePos[1] >= 0 and mousePos[1] <= H):
+            pos = math.floor(mousePos[0] / math.floor(W/CPL)), math.floor(mousePos[1] / math.floor(H/CPL))
+            tile = self.tiles[pos[0]][pos[1]]
+            if tile.covered == True:
+                tile.covered = 'flagged'
+            elif tile.covered == 'flagged':
+                tile.covered = True
 
     def firstClick(self,tile):
         safe = self.allNeighbors(tile)
@@ -196,19 +208,21 @@ unsearched = Label(Info,text='',font='Roboto 18 bold',bg=Info['bg'])
 unsearched.pack(side=RIGHT,padx=25)
 
 
-
-tileController = TileController(0.1)
+tileController = TileController(0.18)
 tileController.populate()
 
-
+finishLabel = Label(tileController.board,text='',width=W,font='Roboto 64 bold',fg='red')
 
 while 1:
     if tileController.totalBombs == tileController.unsearched and tileController.gameOver == False:
-        # print('you win')
-        pass
+        finishLabel.place(rely=0.5,relx=0.5,anchor='center')
+        finishLabel.config(text='YOU WIN!')
     elif tileController.gameOver == True:
-        # print('Game Over')
-        pass
+        finishLabel.place(rely=0.5,relx=0.5,anchor='center')
+        finishLabel.config(text='GAME OVER')
+    else:
+        finishLabel.place_forget()
+
     tileController.update()
     root.update()
     root.update_idletasks()
