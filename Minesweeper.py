@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from tkinter import *
 import math, random, time
 InfoH = 50
@@ -5,7 +6,7 @@ W, H = 600,600
 CPL = 15
 
 
-COLORS = {'1' : '#2c5e8f',
+COLORS = {'1' : '#2c5e80',
           '2' : '#008900',
           '3' : '#dc143c',
           '4' : '#193753',
@@ -18,6 +19,7 @@ COLORS = {'1' : '#2c5e8f',
 }
 SAND = [['#c2b280','#b5a265','#c8ba8d','#cfc29b'],'#cdcdcd']
 GRASS = [['#006200','#006200','#008900','#009d00','#00b100'],'#573116']
+ALL_TEXTURES = [GRASS]
 
 MODES = {"Easy" : 0.1, "Medium" : 0.2, "Hard" : 0.3, "Insane" : 0.5}
 
@@ -89,7 +91,7 @@ class TileController():
         self.InitalClick = False
         self.neightbourFormat = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
         self.textSize = '-2.8*x + 70'
-        self.texture = random.choice([GRASS,SAND])
+        self.texture = random.choice(ALL_TEXTURES)
 
         self.board = Frame(root,width=W,height=H,bg='#000')
         self.board.grid(rowspan=CPL,columnspan=CPL,sticky='s')
@@ -100,7 +102,7 @@ class TileController():
 
     def _handleNew(self,event):
         total.config(text='...')
-        self.texture = random.choice([GRASS,SAND])
+        self.texture = random.choice(ALL_TEXTURES)
         self.gameOver = False
         self.populate(False)
 
@@ -154,6 +156,11 @@ class TileController():
         tilesFlagged = 0;
         for column in self.tiles:
             for tile in column:
+                if self.gameOver == True:
+                    for c in self.tiles:
+                        for t in c:
+                            if t.hasBomb == True:
+                                t.covered = False
                 if tile.covered != True:
                     if tile.covered == False:
                         if tile.text == '*':
@@ -219,7 +226,8 @@ unsearched.pack(side=RIGHT,padx=25)
 tkvar = StringVar(root)
 
 
-tileController = TileController(0.18)
+tileController = TileController(0.16)
+# tileController = TileController(0.25)
 tileController.populate()
 
 finishLabel = Label(tileController.board,text='',width=W,font='Roboto 64 bold',fg='red')
