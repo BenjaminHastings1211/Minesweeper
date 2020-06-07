@@ -19,9 +19,10 @@ COLORS = {'1' : '#2c5e80',
 }
 SAND = [['#c2b280','#b5a265','#c8ba8d','#cfc29b'],'#cdcdcd']
 GRASS = [['#006200','#006200','#008900','#009d00','#00b100'],'#573116']
-ALL_TEXTURES = [GRASS]
+OCEAN = [['#0087d8','#0077be','#0067a5','#00578b','#0097f1'],'#d8bc00']
+ALL_TEXTURES = [GRASS,SAND,OCEAN]
 
-MODES = {"Easy" : 0.1, "Medium" : 0.2, "Hard" : 0.3, "Insane" : 0.5}
+MODES = {"SIMPLE" : 0.05, "EASY" : 0.1, "MEDIUM" : 0.2, "HARD" : 0.3, "INSANE" : 0.5}
 
 def cutList(l):
     newL = []
@@ -225,8 +226,8 @@ unsearched = Label(Info,text='',font='Roboto 18 bold',bg=Info['bg'])
 unsearched.pack(side=RIGHT,padx=25)
 tkvar = StringVar(root)
 
-
-tileController = TileController(0.16)
+mode = input('select game mode: ').upper()
+tileController = TileController(MODES[mode]) # 0.16
 # tileController = TileController(0.25)
 tileController.populate()
 
